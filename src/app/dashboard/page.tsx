@@ -18,10 +18,10 @@ export default function DashboardPage() {
           <Link href="/inventory" className="text-muted-foreground transition-colors hover:text-foreground">
             Inventory
           </Link>
-           <Link href="#" className="text-muted-foreground transition-colors hover:text-foreground">
+           <Link href="/sales" className="text-muted-foreground transition-colors hover:text-foreground">
             Sales
           </Link>
-          <Link href="#" className="text-muted-foreground transition-colors hover:text-foreground">
+          <Link href="/analytics" className="text-muted-foreground transition-colors hover:text-foreground">
             Analytics
           </Link>
         </nav>
@@ -47,7 +47,7 @@ export default function DashboardPage() {
             <CardContent>
               <div className="text-2xl font-bold">$45,231.89</div>
               <p className="text-xs text-muted-foreground">+20.1% from last month</p>
-               <Link href="#" className="mt-4 inline-block">
+               <Link href="/sales" className="mt-4 inline-block">
                 <Button>View Sales</Button>
               </Link>
             </CardContent>
@@ -73,7 +73,7 @@ export default function DashboardPage() {
             <CardContent>
               <div className="text-2xl font-bold">Reports</div>
               <p className="text-xs text-muted-foreground">View performance & trends</p>
-               <Link href="#" className="mt-4 inline-block">
+               <Link href="/analytics" className="mt-4 inline-block">
                 <Button>View Analytics</Button>
               </Link>
             </CardContent>
