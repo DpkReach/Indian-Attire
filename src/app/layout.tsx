@@ -3,8 +3,8 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: 'Attire Inventory Pilot',
-  description: 'Inventory Management System for an Indian Attire Store',
+  title: 'Attire Store Management',
+  description: 'Inventory and Sales Management System for an Indian Attire Store',
 };
 
 export default function RootLayout({
