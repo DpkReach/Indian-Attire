@@ -12,7 +12,6 @@ import {
   Pyramid,
   WrapText,
   Filter,
-  Plus,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -227,9 +226,14 @@ export function InventoryPage({ initialProducts }: InventoryPageProps) {
             />
           </div>
           {isAdmin && (
-            <Button onClick={handleAddItem}>
-              <PlusCircle className="mr-2 h-4 w-4" /> Add Item
-            </Button>
+            <>
+              <Button onClick={() => setIsAddCategoryOpen(true)}>
+                <PlusCircle className="mr-2 h-4 w-4" /> Add Category
+              </Button>
+              <Button onClick={handleAddItem}>
+                <PlusCircle className="mr-2 h-4 w-4" /> Add Item
+              </Button>
+            </>
           )}
         </div>
       </header>
@@ -256,20 +260,7 @@ export function InventoryPage({ initialProducts }: InventoryPageProps) {
               </Tabs>
             </div>
             <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Category</label>
-                {isAdmin && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => setIsAddCategoryOpen(true)}
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span className="sr-only">Add Category</span>
-                  </Button>
-                )}
-              </div>
+              <label className="text-sm font-medium">Category</label>
               <Select
                 value={categoryFilter}
                 onValueChange={setCategoryFilter}
