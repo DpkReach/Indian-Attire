@@ -1,0 +1,3 @@
+This folder is for your static assets.
+
+You can place your background image file (e.g., 'background.png') here. The dashboard page is already set up to use a file with that name from this directory.

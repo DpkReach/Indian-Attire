@@ -10,11 +10,10 @@ export default function DashboardPage() {
     <DashboardLayout>
       <div className="relative -m-4 flex-1 md:-m-8">
         <Image
-          src="https://placehold.co/1920x1080.png"
+          src="/background.png"
           alt="Indian attire background"
           fill
           className="object-cover opacity-20"
-          data-ai-hint="indian wedding attire"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
         <div className="relative z-10 grid gap-4 p-4 md:grid-cols-2 md:gap-8 md:p-8 lg:grid-cols-4">
