@@ -1,4 +1,5 @@
-export type ProductCategory = "Lehenga" | "Saree" | "Kurta" | "Dhoti";
+
+export type ProductCategory = string;
 export type ProductGender = "Men" | "Women" | "Unisex";
 export type ProductOccasion = "Wedding" | "Festival" | "Casual" | "Formal";
 

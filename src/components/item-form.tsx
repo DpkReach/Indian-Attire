@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,7 +26,7 @@ import type { Product, ProductCategory, ProductGender, ProductOccasion } from "@
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
-  category: z.enum(["Lehenga", "Saree", "Kurta", "Dhoti"]),
+  category: z.string().min(1, "Category is required."),
   gender: z.enum(["Men", "Women", "Unisex"]),
   size: z.string().min(1, "Size is required."),
   color: z.string().min(2, "Color is required."),
@@ -38,13 +39,13 @@ type ItemFormProps = {
   onSubmit: (values: Omit<Product, 'id' | 'imageUrl'>) => void;
   initialData?: Product | null;
   onCancel: () => void;
+  categories: ProductCategory[];
 };
 
-const categories: ProductCategory[] = ["Saree", "Lehenga", "Kurta", "Dhoti"];
 const genders: ProductGender[] = ["Women", "Men", "Unisex"];
 const occasions: ProductOccasion[] = ["Wedding", "Festival", "Casual", "Formal"];
 
-export function ItemForm({ onSubmit, initialData, onCancel }: ItemFormProps) {
+export function ItemForm({ onSubmit, initialData, onCancel, categories }: ItemFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData
@@ -53,7 +54,7 @@ export function ItemForm({ onSubmit, initialData, onCancel }: ItemFormProps) {
         }
       : {
           name: "",
-          category: "Saree",
+          category: categories[0] || "",
           gender: "Women",
           size: "",
           color: "",

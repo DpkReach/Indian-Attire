@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from "next/image";
@@ -11,6 +12,7 @@ import {
   Pyramid,
   WrapText,
   Filter,
+  Plus,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +51,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   Sheet,
   SheetContent,
   SheetHeader,
@@ -66,6 +76,9 @@ import {
 import type { Product, ProductCategory } from "@/types";
 import { ItemForm } from "./item-form";
 import { useToast } from "@/hooks/use-toast";
+import { Label } from "./ui/label";
+import { Switch } from "./ui/switch";
+import { Input } from "./ui/input";
 
 type InventoryPageProps = {
   initialProducts: Product[];
@@ -79,16 +92,28 @@ const categoryIcons: Record<ProductCategory, React.ReactNode> = {
 };
 
 export function InventoryPage({ initialProducts }: InventoryPageProps) {
+  const [isAdmin, setIsAdmin] = React.useState(true);
   const [products, setProducts] = React.useState<Product[]>(initialProducts);
+  const [categories, setCategories] = React.useState<ProductCategory[]>(() => [
+    ...new Set(initialProducts.map((p) => p.category)),
+  ]);
+
   const [genderFilter, setGenderFilter] = React.useState<string>("All");
   const [categoryFilter, setCategoryFilter] = React.useState<string>("All");
   const [occasionFilter, setOccasionFilter] = React.useState<string>("All");
 
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
-  const [editingProduct, setEditingProduct] = React.useState<Product | null>(null);
+  const [editingProduct, setEditingProduct] = React.useState<Product | null>(
+    null
+  );
 
   const [isAlertOpen, setIsAlertOpen] = React.useState(false);
-  const [deletingProductId, setDeletingProductId] = React.useState<string | null>(null);
+  const [deletingProductId, setDeletingProductId] = React.useState<
+    string | null
+  >(null);
+
+  const [isAddCategoryOpen, setIsAddCategoryOpen] = React.useState(false);
+  const [newCategory, setNewCategory] = React.useState("");
 
   const { toast } = useToast();
 
@@ -125,12 +150,10 @@ export function InventoryPage({ initialProducts }: InventoryPageProps) {
       // Update
       setProducts(
         products.map((p) =>
-          p.id === editingProduct.id
-            ? { ...editingProduct, ...values }
-            : p
+          p.id === editingProduct.id ? { ...editingProduct, ...values } : p
         )
       );
-       toast({
+      toast({
         title: "Success!",
         description: "Item has been updated.",
       });
@@ -139,7 +162,7 @@ export function InventoryPage({ initialProducts }: InventoryPageProps) {
       const newProduct: Product = {
         ...values,
         id: (Math.random() * 10000).toString(),
-        imageUrl: "https://placehold.co/600x400.png",
+        imageUrl: `https://placehold.co/600x400.png`,
       };
       setProducts([newProduct, ...products]);
       toast({
@@ -149,6 +172,26 @@ export function InventoryPage({ initialProducts }: InventoryPageProps) {
     }
     setIsSheetOpen(false);
     setEditingProduct(null);
+  };
+
+  const handleAddCategory = () => {
+    const trimmedCategory = newCategory.trim();
+    if (trimmedCategory && !categories.includes(trimmedCategory)) {
+      const newCategories = [...categories, trimmedCategory];
+      setCategories(newCategories);
+      toast({
+        title: "Success",
+        description: `Category "${trimmedCategory}" added.`,
+      });
+      setCategoryFilter(trimmedCategory);
+    } else if (categories.includes(trimmedCategory)) {
+      toast({
+        title: "Info",
+        description: `Category "${trimmedCategory}" already exists.`,
+      });
+    }
+    setIsAddCategoryOpen(false);
+    setNewCategory("");
   };
 
   const filteredProducts = React.useMemo(() => {
@@ -167,66 +210,104 @@ export function InventoryPage({ initialProducts }: InventoryPageProps) {
     <div className="flex min-h-screen w-full flex-col">
       <header className="sticky top-0 flex items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 md:px-6 h-16 z-10">
         <div className="flex items-center gap-2">
-            <Package className="h-6 w-6 text-primary" />
-            <h1 className="font-headline text-2xl font-semibold">Attire Inventory Pilot</h1>
+          <Package className="h-6 w-6 text-primary" />
+          <h1 className="font-headline text-2xl font-semibold">
+            Attire Inventory Pilot
+          </h1>
         </div>
-        <div className="ml-auto">
+        <div className="flex items-center gap-4 ml-auto">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="admin-mode" className="text-sm font-medium">
+              Admin Mode
+            </Label>
+            <Switch
+              id="admin-mode"
+              checked={isAdmin}
+              onCheckedChange={setIsAdmin}
+            />
+          </div>
+          {isAdmin && (
             <Button onClick={handleAddItem}>
-                <PlusCircle className="mr-2 h-4 w-4" /> Add Item
+              <PlusCircle className="mr-2 h-4 w-4" /> Add Item
             </Button>
+          )}
         </div>
       </header>
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
         <Card>
-            <CardHeader>
-                <CardTitle className="font-headline flex items-center gap-2"><Filter className="h-5 w-5"/> Filters</CardTitle>
-                <CardDescription>Refine your inventory view with the filters below.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col md:flex-row gap-4">
-                 <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium">Gender</label>
-                    <Tabs value={genderFilter} onValueChange={setGenderFilter}>
-                        <TabsList>
-                            <TabsTrigger value="All">All</TabsTrigger>
-                            <TabsTrigger value="Women">Women</TabsTrigger>
-                            <TabsTrigger value="Men">Men</TabsTrigger>
-                             <TabsTrigger value="Unisex">Unisex</TabsTrigger>
-                        </TabsList>
-                    </Tabs>
-                </div>
-                <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium">Category</label>
-                     <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                        <SelectTrigger className="w-full md:w-[180px]">
-                            <SelectValue placeholder="Category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="All">All Categories</SelectItem>
-                            <SelectItem value="Saree">Saree</SelectItem>
-                            <SelectItem value="Lehenga">Lehenga</SelectItem>
-                            <SelectItem value="Kurta">Kurta</SelectItem>
-                            <SelectItem value="Dhoti">Dhoti</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-                 <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium">Occasion</label>
-                     <Select value={occasionFilter} onValueChange={setOccasionFilter}>
-                        <SelectTrigger className="w-full md:w-[180px]">
-                            <SelectValue placeholder="Occasion" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="All">All Occasions</SelectItem>
-                            <SelectItem value="Wedding">Wedding</SelectItem>
-                            <SelectItem value="Festival">Festival</SelectItem>
-                            <SelectItem value="Casual">Casual</SelectItem>
-                            <SelectItem value="Formal">Formal</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-            </CardContent>
+          <CardHeader>
+            <CardTitle className="font-headline flex items-center gap-2">
+              <Filter className="h-5 w-5" /> Filters
+            </CardTitle>
+            <CardDescription>
+              Refine your inventory view with the filters below.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col md:flex-row gap-4">
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium">Gender</label>
+              <Tabs value={genderFilter} onValueChange={setGenderFilter}>
+                <TabsList>
+                  <TabsTrigger value="All">All</TabsTrigger>
+                  <TabsTrigger value="Women">Women</TabsTrigger>
+                  <TabsTrigger value="Men">Men</TabsTrigger>
+                  <TabsTrigger value="Unisex">Unisex</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">Category</label>
+                {isAdmin && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => setIsAddCategoryOpen(true)}
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span className="sr-only">Add Category</span>
+                  </Button>
+                )}
+              </div>
+              <Select
+                value={categoryFilter}
+                onValueChange={setCategoryFilter}
+              >
+                <SelectTrigger className="w-full md:w-[180px]">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">All Categories</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium">Occasion</label>
+              <Select
+                value={occasionFilter}
+                onValueChange={setOccasionFilter}
+              >
+                <SelectTrigger className="w-full md:w-[180px]">
+                  <SelectValue placeholder="Occasion" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">All Occasions</SelectItem>
+                  <SelectItem value="Wedding">Wedding</SelectItem>
+                  <SelectItem value="Festival">Festival</SelectItem>
+                  <SelectItem value="Casual">Casual</SelectItem>
+                  <SelectItem value="Formal">Formal</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader>
             <CardTitle className="font-headline">Inventory</CardTitle>
@@ -244,12 +325,18 @@ export function InventoryPage({ initialProducts }: InventoryPageProps) {
                   <TableHead>Name</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Gender</TableHead>
-                  <TableHead className="hidden md:table-cell">Fabric</TableHead>
-                  <TableHead className="hidden md:table-cell">Occasion</TableHead>
-                  <TableHead>Stock</TableHead>
-                  <TableHead>
-                    <span className="sr-only">Actions</span>
+                  <TableHead className="hidden md:table-cell">
+                    Fabric
                   </TableHead>
+                  <TableHead className="hidden md:table-cell">
+                    Occasion
+                  </TableHead>
+                  <TableHead>Stock</TableHead>
+                  {isAdmin && (
+                    <TableHead>
+                      <span className="sr-only">Actions</span>
+                    </TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -265,40 +352,65 @@ export function InventoryPage({ initialProducts }: InventoryPageProps) {
                         data-ai-hint={`${product.category} ${product.color}`}
                       />
                     </TableCell>
-                    <TableCell className="font-medium">{product.name}</TableCell>
+                    <TableCell className="font-medium">
+                      {product.name}
+                    </TableCell>
                     <TableCell>
-                        <Badge variant="outline" className="flex items-center gap-2 w-fit">
-                            {categoryIcons[product.category]}
-                            {product.category}
-                        </Badge>
+                      <Badge
+                        variant="outline"
+                        className="flex items-center gap-2 w-fit"
+                      >
+                        {categoryIcons[product.category] || <Package className="h-4 w-4" />}
+                        {product.category}
+                      </Badge>
                     </TableCell>
                     <TableCell>{product.gender}</TableCell>
-                    <TableCell className="hidden md:table-cell">{product.fabric}</TableCell>
-                    <TableCell className="hidden md:table-cell">{product.occasion}</TableCell>
-                    <TableCell>{product.stock}</TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button aria-haspopup="true" size="icon" variant="ghost">
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Toggle menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => handleEditItem(product)}>Edit</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleDeleteRequest(product.id)} className="text-destructive focus:text-destructive focus:bg-destructive/10">Delete</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                    <TableCell className="hidden md:table-cell">
+                      {product.fabric}
                     </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {product.occasion}
+                    </TableCell>
+                    <TableCell>{product.stock}</TableCell>
+                    {isAdmin && (
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              aria-haspopup="true"
+                              size="icon"
+                              variant="ghost"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Toggle menu</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem
+                              onClick={() => handleEditItem(product)}
+                            >
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteRequest(product.id)}
+                              className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                            >
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </CardContent>
-           <CardFooter>
+          <CardFooter>
             <div className="text-xs text-muted-foreground">
-              Showing <strong>{filteredProducts.length}</strong> of <strong>{products.length}</strong> products
+              Showing <strong>{filteredProducts.length}</strong> of{" "}
+              <strong>{products.length}</strong> products
             </div>
           </CardFooter>
         </Card>
@@ -308,25 +420,31 @@ export function InventoryPage({ initialProducts }: InventoryPageProps) {
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetContent className="sm:max-w-lg w-[90vw] overflow-y-auto">
           <SheetHeader className="pb-4">
-            <SheetTitle className="font-headline">{editingProduct ? 'Edit Item' : 'Add New Item'}</SheetTitle>
+            <SheetTitle className="font-headline">
+              {editingProduct ? "Edit Item" : "Add New Item"}
+            </SheetTitle>
             <SheetDescription>
-              {editingProduct ? 'Update the details of your item.' : 'Fill in the details for the new inventory item.'}
+              {editingProduct
+                ? "Update the details of your item."
+                : "Fill in the details for the new inventory item."}
             </SheetDescription>
           </SheetHeader>
-          <ItemForm 
+          <ItemForm
             onSubmit={handleFormSubmit}
             initialData={editingProduct}
             onCancel={() => setIsSheetOpen(false)}
+            categories={categories}
           />
         </SheetContent>
       </Sheet>
-
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="font-headline">Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogTitle className="font-headline">
+              Are you absolutely sure?
+            </AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the
               item from your inventory.
@@ -340,6 +458,34 @@ export function InventoryPage({ initialProducts }: InventoryPageProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Add Category Dialog */}
+      <Dialog open={isAddCategoryOpen} onOpenChange={setIsAddCategoryOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-headline">Add New Category</DialogTitle>
+            <DialogDescription>
+              Enter the name for the new category. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <Label htmlFor="category-name" className="sr-only">
+              Category Name
+            </Label>
+            <Input
+              id="category-name"
+              placeholder="e.g. Sherwani"
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
+            />
+          </div>
+          <DialogFooter>
+             <Button type="button" variant="outline" onClick={() => setIsAddCategoryOpen(false)}>Cancel</Button>
+            <Button type="submit" onClick={handleAddCategory}>Add Category</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
