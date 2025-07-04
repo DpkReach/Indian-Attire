@@ -78,10 +78,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Label } from "./ui/label";
 import { Switch } from "./ui/switch";
 import { Input } from "./ui/input";
+import { Skeleton } from "./ui/skeleton";
+import { db } from "@/lib/firebase";
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore";
 
-type InventoryPageProps = {
-  initialProducts: Product[];
-};
 
 const categoryIcons: Record<ProductCategory, React.ReactNode> = {
   Saree: <GalleryVerticalEnd className="h-4 w-4" />,
@@ -90,31 +90,62 @@ const categoryIcons: Record<ProductCategory, React.ReactNode> = {
   Dhoti: <WrapText className="h-4 w-4" />,
 };
 
-export function InventoryPage({ initialProducts }: InventoryPageProps) {
+export function InventoryPage() {
   const [isAdmin, setIsAdmin] = React.useState(true);
-  const [products, setProducts] = React.useState<Product[]>(initialProducts);
-  const [categories, setCategories] = React.useState<ProductCategory[]>(() => [
-    ...new Set(initialProducts.map((p) => p.category)),
-  ]);
+  const [products, setProducts] = React.useState<Product[]>([]);
+  const [categories, setCategories] = React.useState<ProductCategory[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
 
   const [genderFilter, setGenderFilter] = React.useState<string>("All");
   const [categoryFilter, setCategoryFilter] = React.useState<string>("All");
   const [occasionFilter, setOccasionFilter] = React.useState<string>("All");
 
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
-  const [editingProduct, setEditingProduct] = React.useState<Product | null>(
-    null
-  );
+  const [editingProduct, setEditingProduct] = React.useState<Product | null>(null);
 
   const [isAlertOpen, setIsAlertOpen] = React.useState(false);
-  const [deletingProductId, setDeletingProductId] = React.useState<
-    string | null
-  >(null);
+  const [deletingProductId, setDeletingProductId] = React.useState<string | null>(null);
 
   const [isAddCategoryOpen, setIsAddCategoryOpen] = React.useState(false);
   const [newCategory, setNewCategory] = React.useState("");
 
   const { toast } = useToast();
+
+  React.useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const productsCollection = collection(db, "products");
+        const categoriesCollection = collection(db, "categories");
+
+        const [productSnapshot, categoriesSnapshot] = await Promise.all([
+          getDocs(productsCollection),
+          getDocs(categoriesCollection)
+        ]);
+
+        const productList = productSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Product[];
+        setProducts(productList);
+
+        const categoryList = categoriesSnapshot.docs.map(doc => doc.data().name as ProductCategory);
+        setCategories(categoryList);
+
+      } catch (error) {
+        console.error("Error fetching data: ", error);
+        toast({
+          title: "Error",
+          description: "Could not fetch inventory data. Make sure Firestore is set up correctly.",
+          variant: "destructive",
+        });
+      }
+      setIsLoading(false);
+    };
+
+    fetchData();
+  }, [toast]);
+
 
   const handleAddItem = () => {
     setEditingProduct(null);
@@ -131,58 +162,99 @@ export function InventoryPage({ initialProducts }: InventoryPageProps) {
     setIsAlertOpen(true);
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (deletingProductId) {
-      setProducts(products.filter((p) => p.id !== deletingProductId));
-      toast({
-        title: "Success",
-        description: "Item has been deleted from inventory.",
-        variant: "default",
-      });
+      try {
+        await deleteDoc(doc(db, "products", deletingProductId));
+        setProducts(products.filter((p) => p.id !== deletingProductId));
+        toast({
+          title: "Success",
+          description: "Item has been deleted from inventory.",
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to delete item.",
+          variant: "destructive",
+        });
+      }
     }
     setIsAlertOpen(false);
     setDeletingProductId(null);
   };
 
-  const handleFormSubmit = (values: Omit<Product, "id" | "imageUrl">) => {
+  const handleFormSubmit = async (values: Omit<Product, "id" | "imageUrl">) => {
+    setIsSheetOpen(false);
+    
+    const productData = {
+      ...values,
+      imageUrl: editingProduct?.imageUrl || `https://placehold.co/600x400.png`,
+    };
+
     if (editingProduct) {
       // Update
-      setProducts(
-        products.map((p) =>
-          p.id === editingProduct.id ? { ...editingProduct, ...values } : p
-        )
-      );
-      toast({
-        title: "Success!",
-        description: "Item has been updated.",
-      });
+      try {
+        const productRef = doc(db, "products", editingProduct.id);
+        await updateDoc(productRef, values); // Pass only values, not the whole productData with imageUrl
+        setProducts(
+          products.map((p) =>
+            p.id === editingProduct.id ? { ...p, ...values } : p
+          )
+        );
+        toast({
+          title: "Success!",
+          description: "Item has been updated.",
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to update item.",
+          variant: "destructive",
+        });
+      }
     } else {
       // Add
-      const newProduct: Product = {
-        ...values,
-        id: (Math.random() * 10000).toString(),
-        imageUrl: `https://placehold.co/600x400.png`,
-      };
-      setProducts([newProduct, ...products]);
-      toast({
-        title: "Success!",
-        description: "New item added to inventory.",
-      });
+      try {
+        const docRef = await addDoc(collection(db, "products"), productData);
+        const newProduct: Product = {
+          ...productData,
+          id: docRef.id,
+        };
+        setProducts([newProduct, ...products]);
+        toast({
+          title: "Success!",
+          description: "New item added to inventory.",
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to add new item.",
+          variant: "destructive",
+        });
+      }
     }
-    setIsSheetOpen(false);
     setEditingProduct(null);
   };
-
-  const handleAddCategory = () => {
+  
+  const handleAddCategory = async () => {
     const trimmedCategory = newCategory.trim();
     if (trimmedCategory && !categories.includes(trimmedCategory)) {
-      const newCategories = [...categories, trimmedCategory as ProductCategory];
-      setCategories(newCategories);
-      toast({
-        title: "Success",
-        description: `Category "${trimmedCategory}" added.`,
-      });
-      setCategoryFilter(trimmedCategory);
+      try {
+        await addDoc(collection(db, "categories"), { name: trimmedCategory });
+        const newCategories = [...categories, trimmedCategory as ProductCategory];
+        setCategories(newCategories);
+        toast({
+          title: "Success",
+          description: `Category "${trimmedCategory}" added.`,
+        });
+        setCategoryFilter(trimmedCategory);
+      } catch(e) {
+        toast({
+          title: "Error",
+          description: `Could not add category.`,
+          variant: "destructive",
+        });
+      }
     } else if (categories.includes(trimmedCategory)) {
       toast({
         title: "Info",
@@ -325,70 +397,93 @@ export function InventoryPage({ initialProducts }: InventoryPageProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredProducts.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell className="hidden sm:table-cell">
-                    <Image
-                      alt="Product image"
-                      className="aspect-square rounded-md object-cover"
-                      height="64"
-                      src={product.imageUrl}
-                      width="64"
-                      data-ai-hint={`${product.category} ${product.color}`}
-                    />
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    {product.name}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className="flex items-center gap-2 w-fit"
-                    >
-                      {categoryIcons[product.category] || <Package className="h-4 w-4" />}
-                      {product.category}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{product.gender}</TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {product.fabric}
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {product.occasion}
-                  </TableCell>
-                  <TableCell>{product.stock}</TableCell>
-                  {isAdmin && (
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            aria-haspopup="true"
-                            size="icon"
-                            variant="ghost"
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Toggle menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem
-                            onClick={() => handleEditItem(product)}
-                          >
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleDeleteRequest(product.id)}
-                            className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                          >
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, index) => (
+                  <TableRow key={index}>
+                    <TableCell className="hidden sm:table-cell">
+                      <Skeleton className="h-16 w-16 rounded-md" />
                     </TableCell>
-                  )}
+                    <TableCell><Skeleton className="h-4 w-[250px]" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-[100px]" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-[80px]" /></TableCell>
+                    <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-[100px]" /></TableCell>
+                    <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-[100px]" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-[50px]" /></TableCell>
+                    {isAdmin && <TableCell><Skeleton className="h-8 w-8" /></TableCell>}
+                  </TableRow>
+                ))
+              ) : filteredProducts.length > 0 ? (
+                filteredProducts.map((product) => (
+                  <TableRow key={product.id}>
+                    <TableCell className="hidden sm:table-cell">
+                      <Image
+                        alt="Product image"
+                        className="aspect-square rounded-md object-cover"
+                        height="64"
+                        src={product.imageUrl}
+                        width="64"
+                        data-ai-hint={`${product.category} ${product.color}`}
+                      />
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {product.name}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className="flex items-center gap-2 w-fit"
+                      >
+                        {categoryIcons[product.category] || <Package className="h-4 w-4" />}
+                        {product.category}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{product.gender}</TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {product.fabric}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {product.occasion}
+                    </TableCell>
+                    <TableCell>{product.stock}</TableCell>
+                    {isAdmin && (
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              aria-haspopup="true"
+                              size="icon"
+                              variant="ghost"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Toggle menu</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem
+                              onClick={() => handleEditItem(product)}
+                            >
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteRequest(product.id)}
+                              className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                            >
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={isAdmin ? 8 : 7} className="h-24 text-center">
+                    No products found. Add one to get started!
+                  </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -449,7 +544,7 @@ export function InventoryPage({ initialProducts }: InventoryPageProps) {
           <DialogHeader>
             <DialogTitle className="font-headline">Add New Category</DialogTitle>
             <DialogDescription>
-              Enter the name for the new category. This cannot be undone.
+              Enter the name for the new category. This will be saved to your database.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
