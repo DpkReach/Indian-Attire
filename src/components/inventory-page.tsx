@@ -176,7 +176,7 @@ export function InventoryPage({ initialProducts }: InventoryPageProps) {
   const handleAddCategory = () => {
     const trimmedCategory = newCategory.trim();
     if (trimmedCategory && !categories.includes(trimmedCategory)) {
-      const newCategories = [...categories, trimmedCategory];
+      const newCategories = [...categories, trimmedCategory as ProductCategory];
       setCategories(newCategories);
       toast({
         title: "Success",
@@ -206,15 +206,10 @@ export function InventoryPage({ initialProducts }: InventoryPageProps) {
   }, [products, genderFilter, categoryFilter, occasionFilter]);
 
   return (
-    <div className="flex min-h-screen w-full flex-col">
-      <header className="sticky top-0 flex items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 md:px-6 h-16 z-10">
-        <div className="flex items-center gap-2">
-          <Package className="h-6 w-6 text-primary" />
-          <h1 className="font-headline text-2xl font-semibold">
-            Attire Inventory Pilot
-          </h1>
-        </div>
-        <div className="flex items-center gap-4 ml-auto">
+    <>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="font-headline text-3xl font-semibold">Inventory</h1>
+        <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
             <Label htmlFor="admin-mode" className="text-sm font-medium">
               Admin Mode
@@ -236,176 +231,174 @@ export function InventoryPage({ initialProducts }: InventoryPageProps) {
             </>
           )}
         </div>
-      </header>
-      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-headline flex items-center gap-2">
-              <Filter className="h-5 w-5" /> Filters
-            </CardTitle>
-            <CardDescription>
-              Refine your inventory view with the filters below.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col md:flex-row gap-4">
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">Gender</label>
-              <Tabs value={genderFilter} onValueChange={setGenderFilter}>
-                <TabsList>
-                  <TabsTrigger value="All">All</TabsTrigger>
-                  <TabsTrigger value="Women">Women</TabsTrigger>
-                  <TabsTrigger value="Men">Men</TabsTrigger>
-                  <TabsTrigger value="Unisex">Unisex</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">Category</label>
-              <Select
-                value={categoryFilter}
-                onValueChange={setCategoryFilter}
-              >
-                <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="All">All Categories</SelectItem>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">Occasion</label>
-              <Select
-                value={occasionFilter}
-                onValueChange={setOccasionFilter}
-              >
-                <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="Occasion" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="All">All Occasions</SelectItem>
-                  <SelectItem value="Wedding">Wedding</SelectItem>
-                  <SelectItem value="Festival">Festival</SelectItem>
-                  <SelectItem value="Casual">Casual</SelectItem>
-                  <SelectItem value="Formal">Formal</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
+      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-headline flex items-center gap-2">
+            <Filter className="h-5 w-5" /> Filters
+          </CardTitle>
+          <CardDescription>
+            Refine your inventory view with the filters below.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium">Gender</label>
+            <Tabs value={genderFilter} onValueChange={setGenderFilter}>
+              <TabsList>
+                <TabsTrigger value="All">All</TabsTrigger>
+                <TabsTrigger value="Women">Women</TabsTrigger>
+                <TabsTrigger value="Men">Men</TabsTrigger>
+                <TabsTrigger value="Unisex">Unisex</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium">Category</label>
+            <Select
+              value={categoryFilter}
+              onValueChange={setCategoryFilter}
+            >
+              <SelectTrigger className="w-full md:w-[180px]">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Categories</SelectItem>
+                {categories.map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium">Occasion</label>
+            <Select
+              value={occasionFilter}
+              onValueChange={setOccasionFilter}
+            >
+              <SelectTrigger className="w-full md:w-[180px]">
+                <SelectValue placeholder="Occasion" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Occasions</SelectItem>
+                <SelectItem value="Wedding">Wedding</SelectItem>
+                <SelectItem value="Festival">Festival</SelectItem>
+                <SelectItem value="Casual">Casual</SelectItem>
+                <SelectItem value="Formal">Formal</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-headline">Inventory</CardTitle>
-            <CardDescription>
-              A list of all traditional Indian attire in your store.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="hidden w-[100px] sm:table-cell">
-                    Image
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-headline">Inventory List</CardTitle>
+          <CardDescription>
+            A list of all traditional Indian attire in your store.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="hidden w-[100px] sm:table-cell">
+                  Image
+                </TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Gender</TableHead>
+                <TableHead className="hidden md:table-cell">
+                  Fabric
+                </TableHead>
+                <TableHead className="hidden md:table-cell">
+                  Occasion
+                </TableHead>
+                <TableHead>Stock</TableHead>
+                {isAdmin && (
+                  <TableHead>
+                    <span className="sr-only">Actions</span>
                   </TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Gender</TableHead>
-                  <TableHead className="hidden md:table-cell">
-                    Fabric
-                  </TableHead>
-                  <TableHead className="hidden md:table-cell">
-                    Occasion
-                  </TableHead>
-                  <TableHead>Stock</TableHead>
+                )}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredProducts.map((product) => (
+                <TableRow key={product.id}>
+                  <TableCell className="hidden sm:table-cell">
+                    <Image
+                      alt="Product image"
+                      className="aspect-square rounded-md object-cover"
+                      height="64"
+                      src={product.imageUrl}
+                      width="64"
+                      data-ai-hint={`${product.category} ${product.color}`}
+                    />
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {product.name}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className="flex items-center gap-2 w-fit"
+                    >
+                      {categoryIcons[product.category] || <Package className="h-4 w-4" />}
+                      {product.category}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{product.gender}</TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    {product.fabric}
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    {product.occasion}
+                  </TableCell>
+                  <TableCell>{product.stock}</TableCell>
                   {isAdmin && (
-                    <TableHead>
-                      <span className="sr-only">Actions</span>
-                    </TableHead>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            aria-haspopup="true"
+                            size="icon"
+                            variant="ghost"
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Toggle menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem
+                            onClick={() => handleEditItem(product)}
+                          >
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleDeleteRequest(product.id)}
+                            className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                          >
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
                   )}
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredProducts.map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell className="hidden sm:table-cell">
-                      <Image
-                        alt="Product image"
-                        className="aspect-square rounded-md object-cover"
-                        height="64"
-                        src={product.imageUrl}
-                        width="64"
-                        data-ai-hint={`${product.category} ${product.color}`}
-                      />
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      {product.name}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className="flex items-center gap-2 w-fit"
-                      >
-                        {categoryIcons[product.category] || <Package className="h-4 w-4" />}
-                        {product.category}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{product.gender}</TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {product.fabric}
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {product.occasion}
-                    </TableCell>
-                    <TableCell>{product.stock}</TableCell>
-                    {isAdmin && (
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              aria-haspopup="true"
-                              size="icon"
-                              variant="ghost"
-                            >
-                              <MoreHorizontal className="h-4 w-4" />
-                              <span className="sr-only">Toggle menu</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem
-                              onClick={() => handleEditItem(product)}
-                            >
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleDeleteRequest(product.id)}
-                              className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                            >
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-          <CardFooter>
-            <div className="text-xs text-muted-foreground">
-              Showing <strong>{filteredProducts.length}</strong> of{" "}
-              <strong>{products.length}</strong> products
-            </div>
-          </CardFooter>
-        </Card>
-      </main>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+        <CardFooter>
+          <div className="text-xs text-muted-foreground">
+            Showing <strong>{filteredProducts.length}</strong> of{" "}
+            <strong>{products.length}</strong> products
+          </div>
+        </CardFooter>
+      </Card>
 
       {/* Add/Edit Sheet */}
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
@@ -477,6 +470,6 @@ export function InventoryPage({ initialProducts }: InventoryPageProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }
