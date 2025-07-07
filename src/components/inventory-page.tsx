@@ -72,11 +72,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Product, ProductCategory } from "@/types";
+import type { Product, ProductCategory, User } from "@/types";
 import { ItemForm } from "./item-form";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "./ui/label";
-import { Switch } from "./ui/switch";
 import { Input } from "./ui/input";
 import { products as initialProducts } from "@/lib/data";
 
@@ -89,7 +88,7 @@ const categoryIcons: Record<ProductCategory, React.ReactNode> = {
 };
 
 export function InventoryPage() {
-  const [isAdmin, setIsAdmin] = React.useState(true);
+  const [user, setUser] = React.useState<User | null>(null);
   const [products, setProducts] = React.useState<Product[]>([]);
   const [categories, setCategories] = React.useState<ProductCategory[]>([]);
 
@@ -108,8 +107,16 @@ export function InventoryPage() {
 
   const { toast } = useToast();
 
-  // Load data from localStorage on mount, or seed with initial data
   React.useEffect(() => {
+    try {
+        const storedUser = localStorage.getItem('attire-user');
+        if (storedUser) {
+            setUser(JSON.parse(storedUser));
+        }
+    } catch (error) {
+        console.error("Failed to parse user from localStorage", error);
+    }
+
     try {
       const storedProducts = localStorage.getItem("attire-inventory-products");
       const storedCategories = localStorage.getItem("attire-inventory-categories");
@@ -120,11 +127,11 @@ export function InventoryPage() {
         setProducts(initialProducts);
       }
       
+      const uniqueInitialCategories = [...new Set(initialProducts.map((p) => p.category))] as ProductCategory[];
       if (storedCategories && storedCategories !== "[]") {
-        setCategories(JSON.parse(storedCategories));
+        setCategories([...new Set([...JSON.parse(storedCategories), ...uniqueInitialCategories])] as ProductCategory[]);
       } else {
-        const uniqueCategories = [...new Set(initialProducts.map((p) => p.category))] as ProductCategory[];
-        setCategories(uniqueCategories);
+        setCategories(uniqueInitialCategories);
       }
     } catch (error) {
       console.error("Failed to load data from localStorage", error);
@@ -134,19 +141,20 @@ export function InventoryPage() {
     }
   }, []);
 
-  // Save products to localStorage whenever they change
   React.useEffect(() => {
     if (products.length > 0) {
       localStorage.setItem("attire-inventory-products", JSON.stringify(products));
     }
   }, [products]);
 
-  // Save categories to localStorage whenever they change
   React.useEffect(() => {
     if (categories.length > 0) {
-      localStorage.setItem("attire-inventory-categories", JSON.stringify(categories));
+      const uniqueCategories = [...new Set(categories)];
+      localStorage.setItem("attire-inventory-categories", JSON.stringify(uniqueCategories));
     }
   }, [categories]);
+
+  const isAdmin = user?.role === 'admin';
 
   const handleAddItem = () => {
     setEditingProduct(null);
@@ -178,13 +186,11 @@ export function InventoryPage() {
   const handleFormSubmit = async (values: Omit<Product, "id" | "imageUrl">) => {
     setIsSheetOpen(false);
     
-    // Ensure new category is added to the list if it's new
     if (!categories.includes(values.category)) {
         setCategories([...categories, values.category]);
     }
 
     if (editingProduct) {
-      // Update
       setProducts(
         products.map((p) =>
           p.id === editingProduct.id ? { ...p, ...values, imageUrl: p.imageUrl } : p
@@ -195,10 +201,9 @@ export function InventoryPage() {
         description: "Item has been updated.",
       });
     } else {
-      // Add
       const newProduct: Product = {
         ...values,
-        id: new Date().getTime().toString(), // Simple unique ID
+        id: new Date().getTime().toString(),
         imageUrl: `https://placehold.co/600x400.png`,
       };
       setProducts([newProduct, ...products]);
@@ -213,7 +218,7 @@ export function InventoryPage() {
   const handleAddCategory = async () => {
     const trimmedCategory = newCategory.trim();
     if (trimmedCategory && !categories.includes(trimmedCategory as ProductCategory)) {
-      const newCategories = [...categories, trimmedCategory as ProductCategory];
+      const newCategories = [...new Set([...categories, trimmedCategory as ProductCategory])];
       setCategories(newCategories);
       toast({
         title: "Success",
@@ -241,22 +246,14 @@ export function InventoryPage() {
       return genderMatch && categoryMatch && occasionMatch;
     });
   }, [products, genderFilter, categoryFilter, occasionFilter]);
+  
+  const uniqueCategories = [...new Set(categories)];
 
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="font-headline text-3xl font-semibold">Inventory</h1>
         <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="admin-mode" className="text-sm font-medium">
-              Admin Mode
-            </Label>
-            <Switch
-              id="admin-mode"
-              checked={isAdmin}
-              onCheckedChange={setIsAdmin}
-            />
-          </div>
           {isAdmin && (
             <>
               <Button onClick={() => setIsAddCategoryOpen(true)}>
@@ -301,7 +298,7 @@ export function InventoryPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="All">All Categories</SelectItem>
-                {categories.map((cat) => (
+                {uniqueCategories.map((cat) => (
                   <SelectItem key={cat} value={cat}>
                     {cat}
                   </SelectItem>
@@ -445,7 +442,6 @@ export function InventoryPage() {
         </CardFooter>
       </Card>
 
-      {/* Add/Edit Sheet */}
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetContent className="sm:max-w-lg w-[90vw] overflow-y-auto">
           <SheetHeader className="pb-4">
@@ -462,12 +458,11 @@ export function InventoryPage() {
             onSubmit={handleFormSubmit}
             initialData={editingProduct}
             onCancel={() => setIsSheetOpen(false)}
-            categories={categories}
+            categories={uniqueCategories}
           />
         </SheetContent>
       </Sheet>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -488,7 +483,6 @@ export function InventoryPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Add Category Dialog */}
       <Dialog open={isAddCategoryOpen} onOpenChange={setIsAddCategoryOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

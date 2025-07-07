@@ -1,4 +1,5 @@
 
+
 export type ProductCategory = string;
 export type ProductGender = "Men" | "Women" | "Unisex";
 export type ProductOccasion = "Wedding" | "Festival" | "Casual" | "Formal";
@@ -34,4 +35,15 @@ export type Sale = {
   total: number;
   status: SaleStatus;
   items: SaleItem[];
+};
+
+// New types for Users
+export type UserRole = "admin" | "sales";
+
+export type User = {
+  id: string;
+  name: string;
+  email: string;
+  password?: string; // It's optional as we won't always need it on the client
+  role: UserRole;
 };

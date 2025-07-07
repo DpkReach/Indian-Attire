@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -6,14 +7,63 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import * as React from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { users as initialUsers } from '@/lib/users';
+import type { User } from '@/types';
 
 export default function RegisterPage() {
     const router = useRouter();
+    const { toast } = useToast();
+    const [fullName, setFullName] = React.useState('');
+    const [email, setEmail] = React.useState('');
+    const [password, setPassword] = React.useState('');
 
     const handleRegister = (event: React.FormEvent) => {
         event.preventDefault();
-        // Dummy registration logic
-        router.push('/dashboard');
+
+        try {
+            const storedUsers = localStorage.getItem('attire-users');
+            const users = storedUsers ? (JSON.parse(storedUsers) as User[]) : initialUsers;
+
+            const existingUser = users.find((u: User) => u.email === email);
+            if (existingUser) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Registration Failed',
+                    description: 'A user with this email already exists.',
+                });
+                return;
+            }
+
+            const newUser: User = {
+                id: `user-${new Date().getTime()}`,
+                name: fullName,
+                email: email,
+                password: password,
+                role: 'sales', // New users default to 'sales' role
+            };
+
+            const updatedUsers = [...users, newUser];
+            localStorage.setItem('attire-users', JSON.stringify(updatedUsers));
+            
+            // Also log the new user in
+            localStorage.setItem('attire-user', JSON.stringify({ id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role }));
+            
+            toast({
+                title: 'Registration Successful',
+                description: "You're now logged in.",
+            });
+            
+            router.push('/dashboard');
+        } catch (error) {
+            console.error("Registration error:", error);
+            toast({
+                variant: 'destructive',
+                title: 'An Error Occurred',
+                description: 'Could not complete registration.',
+            });
+        }
     };
 
   return (
@@ -26,16 +76,16 @@ export default function RegisterPage() {
         <CardContent>
           <form onSubmit={handleRegister} className="grid gap-4">
             <div className="grid gap-2">
-                <Label htmlFor="first-name">Full Name</Label>
-                <Input id="first-name" placeholder="Max" required />
+                <Label htmlFor="full-name">Full Name</Label>
+                <Input id="full-name" placeholder="Max Robinson" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="m@example.com" required />
+              <Input id="email" type="email" placeholder="m@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" required />
+              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
             <Button type="submit" className="w-full">
               Create an account
