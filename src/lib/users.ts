@@ -10,6 +10,7 @@ export const users: User[] = [
     email: 'deepakadimoolam1412@gmail.com',
     password: 'Deepak1412',
     role: 'admin',
+    totalHours: 0,
   },
   {
     id: 'user-002',
@@ -17,6 +18,7 @@ export const users: User[] = [
     email: 'priya.patel@example.com',
     password: 'password123',
     role: 'sales',
+    totalHours: 0,
   },
   {
     id: 'user-003',
@@ -24,6 +26,7 @@ export const users: User[] = [
     email: 'rohan.sharma@example.com',
     password: 'password123',
     role: 'sales',
+    totalHours: 0,
   },
   {
     id: 'user-004',
@@ -31,5 +34,6 @@ export const users: User[] = [
     email: 'ananya.iyer@example.com',
     password: 'password123',
     role: 'sales',
+    totalHours: 0,
   },
 ];

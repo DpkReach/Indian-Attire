@@ -46,4 +46,12 @@ export type User = {
   email: string;
   password?: string; // It's optional as we won't always need it on the client
   role: UserRole;
+  totalHours?: number; // Accumulated hours
+};
+
+export type TimeEntry = {
+  id: string;
+  userId: string;
+  clockIn: string; // ISO string
+  clockOut?: string; // ISO string
 };

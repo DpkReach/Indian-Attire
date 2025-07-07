@@ -22,17 +22,15 @@ export function StaffPage() {
       const storedUsersJSON = localStorage.getItem('attire-users');
       const storedUsers = storedUsersJSON ? (JSON.parse(storedUsersJSON) as User[]) : [];
 
-      // Combine initial users and stored users, with initial users first.
-      const allUsers = [...initialUsers, ...storedUsers];
-
-      // Use a Map to de-duplicate based on email, ensuring initial users take precedence.
+      // Combine initial users and stored users, with stored users taking precedence.
       const uniqueUsersMap = new Map<string, User>();
-      for (const user of allUsers) {
-          if (!uniqueUsersMap.has(user.email)) {
-              uniqueUsersMap.set(user.email, user);
-          }
-      }
-
+      
+      // Add initial users first as a base
+      initialUsers.forEach(u => uniqueUsersMap.set(u.id, u));
+      
+      // Update/add users from storage, as they are more current
+      storedUsers.forEach(u => uniqueUsersMap.set(u.id, u));
+      
       const combinedUsers = Array.from(uniqueUsersMap.values());
       setUsers(combinedUsers);
     } catch (error) {
@@ -70,6 +68,15 @@ export function StaffPage() {
     const updatedStoredUsers = storedUsers.map(user => 
       user.id === userId ? { ...user, role: newRole } : user
     );
+
+    // If the user being changed wasn't in storedUsers, add them.
+    if (!updatedStoredUsers.some(u => u.id === userId)) {
+        const userFromInitial = users.find(u => u.id === userId);
+        if(userFromInitial) {
+            updatedStoredUsers.push({ ...userFromInitial, role: newRole });
+        }
+    }
+
     localStorage.setItem('attire-users', JSON.stringify(updatedStoredUsers));
     
     // Refresh the user list in the component state to show the change
@@ -97,6 +104,7 @@ export function StaffPage() {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
+              <TableHead className="w-[180px]">Total Hours Worked</TableHead>
               <TableHead className="w-[150px]">Role</TableHead>
             </TableRow>
           </TableHeader>
@@ -105,6 +113,7 @@ export function StaffPage() {
               <TableRow key={user.id}>
                 <TableCell className="font-medium">{user.name}</TableCell>
                 <TableCell>{user.email}</TableCell>
+                <TableCell>{(user.totalHours || 0).toFixed(2)}</TableCell>
                 <TableCell>
                   <Select
                     value={user.role}
