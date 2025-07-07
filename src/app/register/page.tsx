@@ -23,10 +23,15 @@ export default function RegisterPage() {
         event.preventDefault();
 
         try {
-            const storedUsers = localStorage.getItem('attire-users');
-            const users = storedUsers ? (JSON.parse(storedUsers) as User[]) : initialUsers;
+            const storedUsersJSON = localStorage.getItem('attire-users');
+            const storedUsers = storedUsersJSON ? (JSON.parse(storedUsersJSON) as User[]) : [];
+            
+            // For validation, check against a combined list where initial users take precedence
+            const initialUserEmails = new Set(initialUsers.map(u => u.email));
+            const uniqueStoredUsers = storedUsers.filter(u => !initialUserEmails.has(u.email));
+            const allUsersForValidation = [...initialUsers, ...uniqueStoredUsers];
 
-            const existingUser = users.find((u: User) => u.email === email);
+            const existingUser = allUsersForValidation.find((u: User) => u.email === email);
             if (existingUser) {
                 toast({
                     variant: 'destructive',
@@ -44,8 +49,9 @@ export default function RegisterPage() {
                 role: 'sales', // New users default to 'sales' role
             };
 
-            const updatedUsers = [...users, newUser];
-            localStorage.setItem('attire-users', JSON.stringify(updatedUsers));
+            // Add the new user to the list that gets saved back to localStorage
+            const updatedUsersToStore = [...storedUsers, newUser];
+            localStorage.setItem('attire-users', JSON.stringify(updatedUsersToStore));
             
             // Also log the new user in
             localStorage.setItem('attire-user', JSON.stringify({ id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role }));

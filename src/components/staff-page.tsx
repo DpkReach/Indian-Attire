@@ -17,6 +17,27 @@ export function StaffPage() {
   const { toast } = useToast();
   const router = useRouter();
 
+  const loadAndSetUsers = React.useCallback(() => {
+    try {
+      const storedUsersJSON = localStorage.getItem('attire-users');
+      // Start with the hardcoded users to ensure they are always present
+      const combinedUsers = [...initialUsers];
+
+      if (storedUsersJSON) {
+          const storedUsers = JSON.parse(storedUsersJSON) as User[];
+          const initialUserEmails = new Set(initialUsers.map(u => u.email));
+          // Filter storedUsers to only include users not in the initial list
+          const uniqueStoredUsers = storedUsers.filter(u => !initialUserEmails.has(u.email));
+          // Add the unique users to the display list
+          combinedUsers.push(...uniqueStoredUsers);
+      }
+      setUsers(combinedUsers);
+    } catch (error) {
+      console.error("Failed to load users:", error);
+      setUsers(initialUsers); // Fallback to initial users
+    }
+  }, []);
+
   React.useEffect(() => {
     try {
       const storedUser = localStorage.getItem('attire-user');
@@ -35,32 +56,22 @@ export function StaffPage() {
       router.push('/login');
       return;
     }
-
-    try {
-      const storedUsers = localStorage.getItem('attire-users');
-      if (storedUsers) {
-        setUsers(JSON.parse(storedUsers));
-      } else {
-        setUsers(initialUsers);
-        localStorage.setItem('attire-users', JSON.stringify(initialUsers));
-      }
-    } catch (error) {
-      setUsers(initialUsers);
-    }
-  }, [router]);
-
-  React.useEffect(() => {
-    if (users.length > 0) {
-      localStorage.setItem('attire-users', JSON.stringify(users));
-    }
-  }, [users]);
+    loadAndSetUsers();
+  }, [router, loadAndSetUsers]);
   
   const handleRoleChange = (userId: string, newRole: UserRole) => {
-    setUsers(currentUsers => 
-      currentUsers.map(user => 
-        user.id === userId ? { ...user, role: newRole } : user
-      )
+    const storedUsersJSON = localStorage.getItem('attire-users');
+    const storedUsers = storedUsersJSON ? (JSON.parse(storedUsersJSON) as User[]) : [];
+
+    // Only update the dynamic users list in localStorage
+    const updatedStoredUsers = storedUsers.map(user => 
+      user.id === userId ? { ...user, role: newRole } : user
     );
+    localStorage.setItem('attire-users', JSON.stringify(updatedStoredUsers));
+    
+    // Refresh the user list in the component state to show the change
+    loadAndSetUsers();
+    
     toast({
       title: 'Role Updated',
       description: `User role has been successfully changed to ${newRole}.`,
@@ -95,7 +106,8 @@ export function StaffPage() {
                   <Select
                     value={user.role}
                     onValueChange={(newRole: UserRole) => handleRoleChange(user.id, newRole)}
-                    disabled={user.id === currentUser.id}
+                    // Disable role change for the current admin and the hardcoded admin
+                    disabled={user.id === currentUser.id || user.email === 'deepakadimoolam1412@gmail.com'}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select role" />

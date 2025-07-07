@@ -22,8 +22,19 @@ export default function LoginPage() {
     event.preventDefault();
 
     try {
-        const storedUsers = localStorage.getItem('attire-users');
-        const users = storedUsers ? (JSON.parse(storedUsers) as User[]) : initialUsers;
+        const storedUsersJSON = localStorage.getItem('attire-users');
+        // Start with the hardcoded users to ensure they take precedence
+        const users = [...initialUsers];
+
+        if (storedUsersJSON) {
+            const storedUsers = JSON.parse(storedUsersJSON) as User[];
+            // Create a set of emails from initialUsers for quick lookup
+            const initialUserEmails = new Set(initialUsers.map(u => u.email));
+            // Filter storedUsers to only include users not present in the initial list
+            const uniqueStoredUsers = storedUsers.filter(u => !initialUserEmails.has(u.email));
+            // Add the unique stored users to the main list
+            users.push(...uniqueStoredUsers);
+        }
     
         const user = users.find((u) => u.email === email && u.password === password);
 
