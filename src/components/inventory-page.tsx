@@ -90,11 +90,8 @@ const categoryIcons: Record<ProductCategory, React.ReactNode> = {
 
 export function InventoryPage() {
   const [isAdmin, setIsAdmin] = React.useState(true);
-  const [products, setProducts] = React.useState<Product[]>(initialProducts);
-  const [categories, setCategories] = React.useState<ProductCategory[]>(() => {
-     const uniqueCategories = [...new Set(initialProducts.map((p) => p.category))] as ProductCategory[];
-     return uniqueCategories;
-  });
+  const [products, setProducts] = React.useState<Product[]>([]);
+  const [categories, setCategories] = React.useState<ProductCategory[]>([]);
 
   const [genderFilter, setGenderFilter] = React.useState<string>("All");
   const [categoryFilter, setCategoryFilter] = React.useState<string>("All");
@@ -110,6 +107,46 @@ export function InventoryPage() {
   const [newCategory, setNewCategory] = React.useState("");
 
   const { toast } = useToast();
+
+  // Load data from localStorage on mount, or seed with initial data
+  React.useEffect(() => {
+    try {
+      const storedProducts = localStorage.getItem("attire-inventory-products");
+      const storedCategories = localStorage.getItem("attire-inventory-categories");
+
+      if (storedProducts && storedProducts !== "[]") {
+        setProducts(JSON.parse(storedProducts));
+      } else {
+        setProducts(initialProducts);
+      }
+      
+      if (storedCategories && storedCategories !== "[]") {
+        setCategories(JSON.parse(storedCategories));
+      } else {
+        const uniqueCategories = [...new Set(initialProducts.map((p) => p.category))] as ProductCategory[];
+        setCategories(uniqueCategories);
+      }
+    } catch (error) {
+      console.error("Failed to load data from localStorage", error);
+      setProducts(initialProducts);
+      const uniqueCategories = [...new Set(initialProducts.map((p) => p.category))] as ProductCategory[];
+      setCategories(uniqueCategories);
+    }
+  }, []);
+
+  // Save products to localStorage whenever they change
+  React.useEffect(() => {
+    if (products.length > 0) {
+      localStorage.setItem("attire-inventory-products", JSON.stringify(products));
+    }
+  }, [products]);
+
+  // Save categories to localStorage whenever they change
+  React.useEffect(() => {
+    if (categories.length > 0) {
+      localStorage.setItem("attire-inventory-categories", JSON.stringify(categories));
+    }
+  }, [categories]);
 
   const handleAddItem = () => {
     setEditingProduct(null);
@@ -141,6 +178,11 @@ export function InventoryPage() {
   const handleFormSubmit = async (values: Omit<Product, "id" | "imageUrl">) => {
     setIsSheetOpen(false);
     
+    // Ensure new category is added to the list if it's new
+    if (!categories.includes(values.category)) {
+        setCategories([...categories, values.category]);
+    }
+
     if (editingProduct) {
       // Update
       setProducts(
