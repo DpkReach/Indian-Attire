@@ -78,7 +78,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Label } from "./ui/label";
 import { Switch } from "./ui/switch";
 import { Input } from "./ui/input";
-import { Skeleton } from "./ui/skeleton";
 import { products as initialProducts } from "@/lib/data";
 
 
@@ -91,10 +90,11 @@ const categoryIcons: Record<ProductCategory, React.ReactNode> = {
 
 export function InventoryPage() {
   const [isAdmin, setIsAdmin] = React.useState(true);
-  const [products, setProducts] = React.useState<Product[]>([]);
-  const [categories, setCategories] = React.useState<ProductCategory[]>([]);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [isInitialLoad, setIsInitialLoad] = React.useState(true);
+  const [products, setProducts] = React.useState<Product[]>(initialProducts);
+  const [categories, setCategories] = React.useState<ProductCategory[]>(() => {
+     const uniqueCategories = [...new Set(initialProducts.map((p) => p.category))] as ProductCategory[];
+     return uniqueCategories;
+  });
 
   const [genderFilter, setGenderFilter] = React.useState<string>("All");
   const [categoryFilter, setCategoryFilter] = React.useState<string>("All");
@@ -110,54 +110,6 @@ export function InventoryPage() {
   const [newCategory, setNewCategory] = React.useState("");
 
   const { toast } = useToast();
-
-  React.useEffect(() => {
-    setIsLoading(true);
-    try {
-      const storedProducts = localStorage.getItem("inventory-products");
-      const storedCategories = localStorage.getItem("inventory-categories");
-
-      if (storedProducts) {
-        setProducts(JSON.parse(storedProducts));
-      } else {
-        setProducts(initialProducts);
-      }
-      
-      if (storedCategories) {
-        const parsedCategories = JSON.parse(storedCategories);
-        const uniqueCategories = [...new Set(parsedCategories)] as ProductCategory[];
-        setCategories(uniqueCategories);
-      } else {
-        const uniqueCategories = [...new Set(initialProducts.map((p) => p.category))] as ProductCategory[];
-        setCategories(uniqueCategories);
-      }
-    } catch (error) {
-      console.error("Error reading from localStorage", error);
-      setProducts(initialProducts);
-      const uniqueCategories = [...new Set(initialProducts.map((p) => p.category))] as ProductCategory[];
-      setCategories(uniqueCategories);
-    } finally {
-      setIsLoading(false);
-      setIsInitialLoad(false);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    if (!isInitialLoad) {
-      try {
-        localStorage.setItem("inventory-products", JSON.stringify(products));
-        localStorage.setItem("inventory-categories", JSON.stringify(categories));
-      } catch (error) {
-        console.error("Error writing to localStorage", error);
-        toast({
-          variant: "destructive",
-          title: "Could not save data",
-          description: "There was an error saving your changes.",
-        });
-      }
-    }
-  }, [products, categories, isInitialLoad, toast]);
-
 
   const handleAddItem = () => {
     setEditingProduct(null);
@@ -218,7 +170,7 @@ export function InventoryPage() {
   
   const handleAddCategory = async () => {
     const trimmedCategory = newCategory.trim();
-    if (trimmedCategory && !categories.includes(trimmedCategory)) {
+    if (trimmedCategory && !categories.includes(trimmedCategory as ProductCategory)) {
       const newCategories = [...categories, trimmedCategory as ProductCategory];
       setCategories(newCategories);
       toast({
@@ -226,7 +178,7 @@ export function InventoryPage() {
         description: `Category "${trimmedCategory}" added.`,
       });
       setCategoryFilter(trimmedCategory);
-    } else if (categories.includes(trimmedCategory)) {
+    } else if (categories.includes(trimmedCategory as ProductCategory)) {
       toast({
         title: "Info",
         description: `Category "${trimmedCategory}" already exists.`,
@@ -368,22 +320,7 @@ export function InventoryPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading ? (
-                Array.from({ length: 5 }).map((_, index) => (
-                  <TableRow key={index}>
-                    <TableCell className="hidden sm:table-cell">
-                      <Skeleton className="h-16 w-16 rounded-md" />
-                    </TableCell>
-                    <TableCell><Skeleton className="h-4 w-[250px]" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-[100px]" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-[80px]" /></TableCell>
-                    <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-[100px]" /></TableCell>
-                    <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-[100px]" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-[50px]" /></TableCell>
-                    {isAdmin && <TableCell><Skeleton className="h-8 w-8" /></TableCell>}
-                  </TableRow>
-                ))
-              ) : filteredProducts.length > 0 ? (
+              {filteredProducts.length > 0 ? (
                 filteredProducts.map((product) => (
                   <TableRow key={product.id}>
                     <TableCell className="hidden sm:table-cell">
