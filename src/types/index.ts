@@ -15,3 +15,23 @@ export type Product = {
   stock: number;
   imageUrl: string;
 };
+
+// New types for Sales
+export type SaleStatus = "Fulfilled" | "Pending" | "Cancelled";
+
+export type SaleItem = {
+  productId: string;
+  productName: string;
+  quantity: number;
+  price: number;
+};
+
+export type Sale = {
+  id: string;
+  customerName: string;
+  customerEmail: string;
+  date: string;
+  total: number;
+  status: SaleStatus;
+  items: SaleItem[];
+};
