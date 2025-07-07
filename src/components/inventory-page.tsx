@@ -79,8 +79,6 @@ import { Label } from "./ui/label";
 import { Switch } from "./ui/switch";
 import { Input } from "./ui/input";
 import { Skeleton } from "./ui/skeleton";
-import { db } from "@/lib/firebase";
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, writeBatch } from "firebase/firestore";
 import { products as initialProducts } from "@/lib/data";
 
 
@@ -113,70 +111,12 @@ export function InventoryPage() {
   const { toast } = useToast();
 
   React.useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        // Handle Products
-        const productsCollection = collection(db, "products");
-        let productSnapshot = await getDocs(productsCollection);
-        
-        if (productSnapshot.empty && initialProducts.length > 0) {
-          const batch = writeBatch(db);
-          initialProducts.forEach(product => {
-            // Firestore will auto-generate an ID, so we don't pass the static one.
-            const { id, ...productData } = product; 
-            const newProductRef = doc(collection(db, "products"));
-            batch.set(newProductRef, productData);
-          });
-          await batch.commit();
-          
-          toast({
-            title: "Welcome!",
-            description: "Your inventory has been seeded with sample products.",
-          });
-          
-          // Re-fetch after seeding
-          productSnapshot = await getDocs(productsCollection);
-        }
-        
-        const productList = productSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Product[];
-        setProducts(productList);
-
-        // Handle Categories
-        const categoriesCollection = collection(db, "categories");
-        let categoriesSnapshot = await getDocs(categoriesCollection);
-        
-        if (categoriesSnapshot.empty && initialProducts.length > 0) {
-          const uniqueCategories = [...new Set(initialProducts.map(p => p.category))];
-          const batch = writeBatch(db);
-          uniqueCategories.forEach(categoryName => {
-            const newCategoryRef = doc(collection(db, "categories"));
-            batch.set(newCategoryRef, { name: categoryName });
-          });
-          await batch.commit();
-          // Re-fetch after seeding
-          categoriesSnapshot = await getDocs(categoriesCollection);
-        }
-
-        const categoryList = categoriesSnapshot.docs.map(doc => doc.data().name as ProductCategory);
-        setCategories([...new Set(categoryList)]);
-
-      } catch (error) {
-        console.error("Error fetching data: ", error);
-        toast({
-          title: "Error",
-          description: "Could not fetch inventory data. Make sure Firestore is set up correctly.",
-          variant: "destructive",
-        });
-      }
-      setIsLoading(false);
-    };
-
-    fetchData();
-  }, [toast]);
+    setIsLoading(true);
+    setProducts(initialProducts);
+    const uniqueCategories = [...new Set(initialProducts.map(p => p.category))] as ProductCategory[];
+    setCategories(uniqueCategories);
+    setIsLoading(false);
+  }, []);
 
 
   const handleAddItem = () => {
@@ -196,20 +136,11 @@ export function InventoryPage() {
 
   const handleDeleteConfirm = async () => {
     if (deletingProductId) {
-      try {
-        await deleteDoc(doc(db, "products", deletingProductId));
-        setProducts(products.filter((p) => p.id !== deletingProductId));
-        toast({
-          title: "Success",
-          description: "Item has been deleted from inventory.",
-        });
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to delete item.",
-          variant: "destructive",
-        });
-      }
+      setProducts(products.filter((p) => p.id !== deletingProductId));
+      toast({
+        title: "Success",
+        description: "Item has been deleted.",
+      });
     }
     setIsAlertOpen(false);
     setDeletingProductId(null);
@@ -218,52 +149,29 @@ export function InventoryPage() {
   const handleFormSubmit = async (values: Omit<Product, "id" | "imageUrl">) => {
     setIsSheetOpen(false);
     
-    const productData = {
-      ...values,
-      imageUrl: editingProduct?.imageUrl || `https://placehold.co/600x400.png`,
-    };
-
     if (editingProduct) {
       // Update
-      try {
-        const productRef = doc(db, "products", editingProduct.id);
-        await updateDoc(productRef, values); // Pass only values, not the whole productData with imageUrl
-        setProducts(
-          products.map((p) =>
-            p.id === editingProduct.id ? { ...p, ...values } : p
-          )
-        );
-        toast({
-          title: "Success!",
-          description: "Item has been updated.",
-        });
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to update item.",
-          variant: "destructive",
-        });
-      }
+      setProducts(
+        products.map((p) =>
+          p.id === editingProduct.id ? { ...p, ...values, imageUrl: p.imageUrl } : p
+        )
+      );
+      toast({
+        title: "Success!",
+        description: "Item has been updated.",
+      });
     } else {
       // Add
-      try {
-        const docRef = await addDoc(collection(db, "products"), productData);
-        const newProduct: Product = {
-          ...productData,
-          id: docRef.id,
-        };
-        setProducts([newProduct, ...products]);
-        toast({
-          title: "Success!",
-          description: "New item added to inventory.",
-        });
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to add new item.",
-          variant: "destructive",
-        });
-      }
+      const newProduct: Product = {
+        ...values,
+        id: new Date().getTime().toString(), // Simple unique ID
+        imageUrl: `https://placehold.co/600x400.png`,
+      };
+      setProducts([newProduct, ...products]);
+      toast({
+        title: "Success!",
+        description: "New item added to inventory.",
+      });
     }
     setEditingProduct(null);
   };
@@ -271,22 +179,13 @@ export function InventoryPage() {
   const handleAddCategory = async () => {
     const trimmedCategory = newCategory.trim();
     if (trimmedCategory && !categories.includes(trimmedCategory)) {
-      try {
-        await addDoc(collection(db, "categories"), { name: trimmedCategory });
-        const newCategories = [...categories, trimmedCategory as ProductCategory];
-        setCategories(newCategories);
-        toast({
-          title: "Success",
-          description: `Category "${trimmedCategory}" added.`,
-        });
-        setCategoryFilter(trimmedCategory);
-      } catch(e) {
-        toast({
-          title: "Error",
-          description: `Could not add category.`,
-          variant: "destructive",
-        });
-      }
+      const newCategories = [...categories, trimmedCategory as ProductCategory];
+      setCategories(newCategories);
+      toast({
+        title: "Success",
+        description: `Category "${trimmedCategory}" added.`,
+      });
+      setCategoryFilter(trimmedCategory);
     } else if (categories.includes(trimmedCategory)) {
       toast({
         title: "Info",
@@ -576,7 +475,7 @@ export function InventoryPage() {
           <DialogHeader>
             <DialogTitle className="font-headline">Add New Category</DialogTitle>
             <DialogDescription>
-              Enter the name for the new category. This will be saved to your database.
+              Enter the name for the new category.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
