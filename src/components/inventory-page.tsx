@@ -80,7 +80,8 @@ import { Switch } from "./ui/switch";
 import { Input } from "./ui/input";
 import { Skeleton } from "./ui/skeleton";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore";
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, writeBatch } from "firebase/firestore";
+import { products as initialProducts } from "@/lib/data";
 
 
 const categoryIcons: Record<ProductCategory, React.ReactNode> = {
@@ -115,19 +116,50 @@ export function InventoryPage() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
+        // Handle Products
         const productsCollection = collection(db, "products");
-        const categoriesCollection = collection(db, "categories");
-
-        const [productSnapshot, categoriesSnapshot] = await Promise.all([
-          getDocs(productsCollection),
-          getDocs(categoriesCollection)
-        ]);
-
+        let productSnapshot = await getDocs(productsCollection);
+        
+        if (productSnapshot.empty && initialProducts.length > 0) {
+          const batch = writeBatch(db);
+          initialProducts.forEach(product => {
+            // Firestore will auto-generate an ID, so we don't pass the static one.
+            const { id, ...productData } = product; 
+            const newProductRef = doc(collection(db, "products"));
+            batch.set(newProductRef, productData);
+          });
+          await batch.commit();
+          
+          toast({
+            title: "Welcome!",
+            description: "Your inventory has been seeded with sample products.",
+          });
+          
+          // Re-fetch after seeding
+          productSnapshot = await getDocs(productsCollection);
+        }
+        
         const productList = productSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
         })) as Product[];
         setProducts(productList);
+
+        // Handle Categories
+        const categoriesCollection = collection(db, "categories");
+        let categoriesSnapshot = await getDocs(categoriesCollection);
+        
+        if (categoriesSnapshot.empty && initialProducts.length > 0) {
+          const uniqueCategories = [...new Set(initialProducts.map(p => p.category))];
+          const batch = writeBatch(db);
+          uniqueCategories.forEach(categoryName => {
+            const newCategoryRef = doc(collection(db, "categories"));
+            batch.set(newCategoryRef, { name: categoryName });
+          });
+          await batch.commit();
+          // Re-fetch after seeding
+          categoriesSnapshot = await getDocs(categoriesCollection);
+        }
 
         const categoryList = categoriesSnapshot.docs.map(doc => doc.data().name as ProductCategory);
         setCategories(categoryList);
