@@ -162,7 +162,7 @@ export function InventoryPage() {
         }
 
         const categoryList = categoriesSnapshot.docs.map(doc => doc.data().name as ProductCategory);
-        setCategories(categoryList);
+        setCategories([...new Set(categoryList)]);
 
       } catch (error) {
         console.error("Error fetching data: ", error);
