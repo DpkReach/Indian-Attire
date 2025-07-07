@@ -94,6 +94,7 @@ export function InventoryPage() {
   const [products, setProducts] = React.useState<Product[]>([]);
   const [categories, setCategories] = React.useState<ProductCategory[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [isInitialLoad, setIsInitialLoad] = React.useState(true);
 
   const [genderFilter, setGenderFilter] = React.useState<string>("All");
   const [categoryFilter, setCategoryFilter] = React.useState<string>("All");
@@ -112,11 +113,50 @@ export function InventoryPage() {
 
   React.useEffect(() => {
     setIsLoading(true);
-    setProducts(initialProducts);
-    const uniqueCategories = [...new Set(initialProducts.map(p => p.category))] as ProductCategory[];
-    setCategories(uniqueCategories);
-    setIsLoading(false);
+    try {
+      const storedProducts = localStorage.getItem("inventory-products");
+      const storedCategories = localStorage.getItem("inventory-categories");
+
+      if (storedProducts) {
+        setProducts(JSON.parse(storedProducts));
+      } else {
+        setProducts(initialProducts);
+      }
+      
+      if (storedCategories) {
+        const parsedCategories = JSON.parse(storedCategories);
+        const uniqueCategories = [...new Set(parsedCategories)] as ProductCategory[];
+        setCategories(uniqueCategories);
+      } else {
+        const uniqueCategories = [...new Set(initialProducts.map((p) => p.category))] as ProductCategory[];
+        setCategories(uniqueCategories);
+      }
+    } catch (error) {
+      console.error("Error reading from localStorage", error);
+      setProducts(initialProducts);
+      const uniqueCategories = [...new Set(initialProducts.map((p) => p.category))] as ProductCategory[];
+      setCategories(uniqueCategories);
+    } finally {
+      setIsLoading(false);
+      setIsInitialLoad(false);
+    }
   }, []);
+
+  React.useEffect(() => {
+    if (!isInitialLoad) {
+      try {
+        localStorage.setItem("inventory-products", JSON.stringify(products));
+        localStorage.setItem("inventory-categories", JSON.stringify(categories));
+      } catch (error) {
+        console.error("Error writing to localStorage", error);
+        toast({
+          variant: "destructive",
+          title: "Could not save data",
+          description: "There was an error saving your changes.",
+        });
+      }
+    }
+  }, [products, categories, isInitialLoad, toast]);
 
 
   const handleAddItem = () => {
