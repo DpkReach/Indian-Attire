@@ -46,6 +46,7 @@ import { DashboardLayout } from '@/components/dashboard-layout';
 import { sales as initialSalesData } from '@/lib/sales-data';
 import type { Sale, SaleStatus } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('en-US', {
