@@ -20,17 +20,20 @@ export function StaffPage() {
   const loadAndSetUsers = React.useCallback(() => {
     try {
       const storedUsersJSON = localStorage.getItem('attire-users');
-      // Start with the hardcoded users to ensure they are always present
-      const combinedUsers = [...initialUsers];
+      const storedUsers = storedUsersJSON ? (JSON.parse(storedUsersJSON) as User[]) : [];
 
-      if (storedUsersJSON) {
-          const storedUsers = JSON.parse(storedUsersJSON) as User[];
-          const initialUserEmails = new Set(initialUsers.map(u => u.email));
-          // Filter storedUsers to only include users not in the initial list
-          const uniqueStoredUsers = storedUsers.filter(u => !initialUserEmails.has(u.email));
-          // Add the unique users to the display list
-          combinedUsers.push(...uniqueStoredUsers);
+      // Combine initial users and stored users, with initial users first.
+      const allUsers = [...initialUsers, ...storedUsers];
+
+      // Use a Map to de-duplicate based on email, ensuring initial users take precedence.
+      const uniqueUsersMap = new Map<string, User>();
+      for (const user of allUsers) {
+          if (!uniqueUsersMap.has(user.email)) {
+              uniqueUsersMap.set(user.email, user);
+          }
       }
+
+      const combinedUsers = Array.from(uniqueUsersMap.values());
       setUsers(combinedUsers);
     } catch (error) {
       console.error("Failed to load users:", error);
