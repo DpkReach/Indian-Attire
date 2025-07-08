@@ -36,4 +36,12 @@ export const users: User[] = [
     role: 'sales',
     totalHours: 0,
   },
+  {
+    id: 'user-005',
+    name: 'Tejaswini Satish ',
+    email: 'tejuvenky277@gmail.com',
+    password: 'Teju9740',
+    role: 'admin',
+    totalHours: 0,
+  },
 ];
