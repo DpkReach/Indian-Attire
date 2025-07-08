@@ -114,7 +114,8 @@ export default function DashboardPage() {
     <DashboardLayout>
       <div className="relative -m-4 flex-1 md:-m-8">
         <Image
-          src="/Indian_attire1.jpg"
+          src="https://placehold.co/1920x1080.png"
+          data-ai-hint="indian attire"
           alt="Indian attire background"
           fill
           className="object-cover opacity-20"
